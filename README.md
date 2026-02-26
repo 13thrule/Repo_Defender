@@ -21,19 +21,7 @@ Repo Defender is an interactive arcade shooter that turns your GitHub profile in
  STATUS: DEFENSES_OFFLINE
 
  ▶️ CLICK HERE TO BOOT GAME AND PLAY NOW 
-
-📸 System Preview
-
-Click on an image below to enter the terminal
-
-START MENU
-
-GAMEPLAY
-
-
-
-
-
+https://13thrule.github.io/Repo_Defender/
 ✨ Unique Features
 
 Avatar-Based Defense: Your actual GitHub profile picture is the core base you must defend.

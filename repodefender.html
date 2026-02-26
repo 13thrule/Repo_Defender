@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repo Defender: Ultimate Edition</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --terminal-dark: #010409;
+            --text: #c9d1d9;
+            --accent: #238636;
+            --danger: #da3633;
+            --gold: #f1e05a;
+            --blue: #58a6ff;
+            --border: #30363d;
+            --cyan: #39c5bb;
+            --purple: #bc8cff;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-mono);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #window-frame {
+            position: relative;
+            background: var(--terminal-dark);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9);
+            width: 1000px;
+            max-width: 95vw;
+            overflow: hidden;
+        }
+
+        #window-header {
+            background: #161b22;
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .window-dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+
+        #game-container { position: relative; }
+
+        canvas { display: block; cursor: crosshair; }
+
+        /* CRT Filter Effect */
+        #game-container::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #ui {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            pointer-events: none;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .terminal-stat {
+            font-size: 11px;
+            color: var(--cyan);
+            background: rgba(1, 4, 9, 0.85);
+            padding: 4px 10px;
+            border-left: 3px solid var(--cyan);
+            backdrop-filter: blur(4px);
+            text-transform: uppercase;
+        }
+
+        #overlay, .game-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(1, 4, 9, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+            z-index: 100;
+        }
+
+        .glitch-text {
+            color: var(--cyan);
+            font-size: 42px;
+            font-weight: 900;
+            text-shadow: 2px 0 var(--danger), -2px 0 var(--blue);
+            margin-bottom: 10px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            background: #0d1117;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 15px;
+            flex-grow: 1;
+            outline: none;
+            font-family: var(--font-mono);
+        }
+
+        button, .upgrade-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 900;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover:not(:disabled) { background: #2ea043; transform: scale(1.02); }
+        button:active { transform: scale(0.98); }
+
+        .secondary-btn {
+            background: var(--border);
+            margin-top: 10px;
+            font-size: 12px;
+            padding: 10px 20px;
+        }
+
+        .upgrade-card, .settings-item {
+            background: #161b22;
+            border: 1px solid var(--cyan);
+            padding: 20px;
+            border-radius: 8px;
+            width: 320px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: left;
+        }
+        .upgrade-card:hover { background: #1c2128; border-color: var(--gold); }
+        .upgrade-card h3 { color: var(--gold); margin: 0 0 5px 0; font-size: 14px; }
+        .upgrade-card p { color: #8b949e; margin: 0; font-size: 11px; }
+
+        #health-bar-container {
+            width: 200px;
+            height: 4px;
+            background: #30363d;
+            margin-top: 5px;
+        }
+        #health-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        .hidden { display: none !important; }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.03);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+        #user-info img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid var(--accent); }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: default;
+        }
+        
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: var(--border);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+        .toggle-switch.on { background: var(--accent); }
+        .toggle-knob {
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: 0.2s;
+        }
+        .on .toggle-knob { left: 22px; }
+
+    </style>
+</head>
+<body>
+
+    <div id="window-frame">
+        <div id="window-header">
+            <div class="window-dots">
+                <div class="dot red" title="Terminate" id="quit-dot"></div>
+                <div class="dot yellow" id="pause-dot" title="Pause (Esc)"></div>
+                <div class="dot green" id="settings-dot" title="Settings"></div>
+            </div>
+            <div style="font-size: 10px; color: #8b949e" id="header-status">REPO_DEFENDER_v4.8.sh</div>
+            <div id="mute-toggle" style="cursor: pointer; font-size: 12px;">🔊</div>
+        </div>
+
+        <div id="game-container">
+            <!-- HUD -->
+            <div id="ui" class="hidden">
+                <div class="terminal-stat">> SYS_HEALTH: <span id="health-val">100%</span>
+                    <div id="health-bar-container"><div id="health-bar-fill"></div></div>
+                </div>
+                <div class="terminal-stat">> COMMITS: <span id="score-val">0</span></div>
+                <div class="terminal-stat">> VERSION: <span id="level-val">1.0</span></div>
+                <div class="terminal-stat">> XP: <progress id="xp-bar" value="0" max="100" style="width: 100px; height: 8px;"></progress></div>
+            </div>
+
+            <!-- Menus -->
+            <div id="pause-menu" class="game-overlay hidden">
+                <h2 class="glitch-text">SYSTEM_PAUSED</h2>
+                <button id="resume-btn">RESUME.EXE</button>
+                <button class="secondary-btn" id="open-settings-btn">SETTINGS</button>
+                <button class="secondary-btn" id="quit-btn" style="color: var(--danger)">TERMINATE_PROCESS</button>
+            </div>
+
+            <div id="settings-menu" class="game-overlay hidden">
+                <h2 style="color: var(--cyan)">SYSTEM_SETTINGS</h2>
+                <div class="settings-item">
+                    <span>AUDIO_SFX</span>
+                    <div class="toggle-switch on" id="sfx-toggle"><div class="toggle-knob"></div></div>
+                </div>
+                <div class="settings-item" style="font-size: 10px; color: #8b949e; flex-direction: column; align-items: flex-start;">
+                    <span>CONTROLS:</span>
+                    <span>- CLICK to fire clean code</span>
+                    <span>- ESC or P to pause/unpause</span>
+                    <span>- Milestones trigger GIT_UPGRADES</span>
+                </div>
+                <button id="close-settings-btn">CLOSE</button>
+            </div>
+
+            <div id="upgrade-menu" class="game-overlay hidden">
+                <h2 style="color: var(--cyan)">GIT_CONFIG_UPGRADE</h2>
+                <div id="upgrade-list"></div>
+            </div>
+
+            <!-- Landing Page -->
+            <div id="overlay">
+                <div class="glitch-text">REPO_DEFENDER</div>
+                <div id="user-info" class="hidden">
+                    <img id="user-avatar" src="" alt="">
+                    <div style="text-align: left;">
+                        <div id="user-name" style="color: var(--gold); font-weight: bold;"></div>
+                        <div id="user-bonus" style="color: var(--cyan); font-size: 10px;"></div>
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <input type="text" id="username-input" placeholder="github handle..." spellcheck="false">
+                    <button id="fetch-btn" style="background:var(--border); color:white; border:none; padding:0 15px; cursor:pointer;">FETCH</button>
+                </div>
+                <button id="start-btn" disabled>BOOT_SYSTEM</button>
+            </div>
+
+            <canvas id="gameCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score-val');
+        const healthEl = document.getElementById('health-val');
+        const healthFill = document.getElementById('health-bar-fill');
+        const levelEl = document.getElementById('level-val');
+        const xpBar = document.getElementById('xp-bar');
+        const overlay = document.getElementById('overlay');
+        const pauseMenu = document.getElementById('pause-menu');
+        const settingsMenu = document.getElementById('settings-menu');
+        const upgradeMenu = document.getElementById('upgrade-menu');
+        const startBtn = document.getElementById('start-btn');
+        const fetchBtn = document.getElementById('fetch-btn');
+        const usernameInput = document.getElementById('username-input');
+
+        const CODE_SNIPPETS = {
+            'JavaScript': ['const app', 'await fetch', '() => {}', 'npm install', 'module.exports'],
+            'Python': ['def main():', 'import requests', 'if __name__', 'pip install', 'self.data'],
+            'TypeScript': ['interface User', 'type Props', 'enum State', 'readonly id', 'as unknown'],
+            'C++': ['std::cout', '#include', 'vector<int>', 'int main()', 'std::unique_ptr'],
+            'Java': ['public static', '@Override', 'String[]', 'System.out', 'class Main'],
+            'Go': ['func main()', 'if err != nil', 'package main', 'chan int', 'go func'],
+            'HTML': ['<div class>', '<!DOCTYPE>', '<html>', '<script>', '<link>'],
+            'CSS': ['display: flex', 'justify-content', '@media', 'z-index', 'grid-template']
+        };
+
+        const AudioEngine = {
+            ctx: null, muted: false,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play(freq, type, duration, vol = 0.1) {
+                if (!this.ctx || this.muted || this.ctx.state === 'suspended') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + duration);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + duration);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(); osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+        };
+
+        document.getElementById('mute-toggle').onclick = () => {
+            AudioEngine.muted = !AudioEngine.muted;
+            document.getElementById('mute-toggle').textContent = AudioEngine.muted ? '🔇' : '🔊';
+        };
+
+        const state = {
+            score: 0, health: 100, xp: 0, level: 1,
+            gameActive: false, isPaused: false, shake: 0, fireRate: 400, lastFire: 0, lastSpawn: 0,
+            multiShot: 1, damage: 1, shield: 0, enemies: [], projectiles: [],
+            particles: [], userRepos: [], userIssues: [], userLangs: [],
+            spawnRate: 2000, animationId: null, backgroundCode: []
+        };
+
+        const player = { x: 0, y: 0, r: 45, img: new Image() };
+
+        function resize() {
+            canvas.width = document.getElementById('window-frame').clientWidth;
+            canvas.height = 600;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Rain {
+            constructor() { this.reset(); this.y = Math.random() * canvas.height; }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = -50;
+                this.speed = 1 + Math.random() * 1.5;
+                const pool = state.userLangs.length > 0 ? state.userLangs.flatMap(l => CODE_SNIPPETS[l] || []) : ['git commit', 'git push', '010101'];
+                this.text = pool[Math.floor(Math.random() * pool.length)];
+                this.opacity = 0.12 + Math.random() * 0.15; // Enhanced visibility
+            }
+            update() { if (!state.isPaused) this.y += this.speed; if (this.y > canvas.height) this.reset(); }
+            draw() {
+                ctx.fillStyle = `rgba(35, 134, 54, ${this.opacity})`;
+                ctx.font = '11px monospace';
+                ctx.fillText(this.text, this.x, this.y);
+            }
+        }
+
+        fetchBtn.onclick = async () => {
+            const user = usernameInput.value.trim();
+            if(!user) return;
+            fetchBtn.textContent = "...";
+            try {
+                const userData = await fetch(`https://api.github.com/users/${user}`).then(r => r.json());
+                const repos = await fetch(`https://api.github.com/users/${user}/repos?sort=updated&per_page=30`).then(r => r.json());
+                state.userRepos = repos;
+                state.userLangs = [...new Set(repos.map(r => r.language).filter(Boolean))];
+                
+                if (repos.length > 0) {
+                    try {
+                        const issues = await fetch(`https://api.github.com/repos/${user}/${repos[0].name}/issues?state=open&per_page=15`).then(r => r.json());
+                        state.userIssues = Array.isArray(issues) ? issues.map(i => i.title.toUpperCase()) : [];
+                    } catch(e) { state.userIssues = []; }
+                }
+                
+                player.img.crossOrigin = "Anonymous";
+                player.img.src = userData.avatar_url;
+                document.getElementById('user-avatar').src = userData.avatar_url;
+                document.getElementById('user-name').textContent = userData.login.toUpperCase();
+                document.getElementById('user-bonus').textContent = `${userData.followers} FOLLOWERS | ${state.userIssues.length} ACTIVE BUGS`;
+                document.getElementById('user-info').classList.remove('hidden');
+                
+                // Initialize background rain based on fetched profile
+                state.backgroundCode = [];
+                for(let i=0; i<60; i++) state.backgroundCode.push(new Rain());
+                
+                startBtn.disabled = false;
+                fetchBtn.textContent = "FETCH";
+            } catch(e) { fetchBtn.textContent = "ERR"; }
+        };
+
+        class Projectile {
+            constructor(tx, ty, sx, sy, angleOffset = 0) {
+                this.x = sx; this.y = sy;
+                const baseAngle = Math.atan2(ty - sy, tx - sx);
+                const angle = baseAngle + angleOffset;
+                this.v = { x: Math.cos(angle) * 14, y: Math.sin(angle) * 14 };
+                this.text = ['FIX', 'OK', '!', '++'][Math.floor(Math.random()*4)];
+            }
+            update() { this.x += this.v.x; this.y += this.v.y; }
+            draw() {
+                ctx.fillStyle = '#39c5bb';
+                ctx.font = 'bold 12px monospace';
+                ctx.shadowBlur = 10; ctx.shadowColor = '#39c5bb';
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = 'rgba(57, 197, 187, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x - this.v.x*2, this.y - this.v.y*2); ctx.stroke();
+            }
+        }
+
+        class Enemy {
+            constructor(isBoss = false) {
+                this.isBoss = isBoss;
+                this.w = isBoss ? 160 : 100;
+                this.h = isBoss ? 80 : 40;
+                // Scaled HP: Bosses are beatable early on
+                this.hp = isBoss ? (Math.floor(3 + state.level * 2.5)) : 1; 
+                this.jitter = 0;
+                const side = Math.floor(Math.random() * 4);
+                if(side === 0) { this.x = -150; this.y = Math.random() * canvas.height; }
+                else if(side === 1) { this.x = canvas.width+150; this.y = Math.random() * canvas.height; }
+                else if(side === 2) { this.x = Math.random()*canvas.width; this.y = -100; }
+                else { this.x = Math.random()*canvas.width; this.y = canvas.height+100; }
+                const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                const speed = isBoss ? 0.6 : 1.2 + (state.level * 0.1);
+                this.v = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
+                
+                if (isBoss && state.userRepos.length > 0) {
+                    const repo = state.userRepos[Math.floor(Math.random() * state.userRepos.length)];
+                    this.label = `LEGACY_PROJECT: ${repo.name.toUpperCase()}`;
+                } else if (!isBoss && state.userIssues.length > 0) {
+                    this.label = state.userIssues[Math.floor(Math.random() * state.userIssues.length)];
+                } else {
+                    this.label = isBoss ? "[FATAL_SYSTEM_DEBT]" : "UNCAUGHT_EXCEPTION";
+                }
+            }
+            update() { 
+                this.x += this.v.x; this.y += this.v.y; 
+                this.jitter = Math.random() * 2;
+            }
+            draw() {
+                const j = (Math.random()-0.5) * this.jitter;
+                ctx.fillStyle = 'rgba(218, 54, 51, 0.1)';
+                ctx.fillRect(this.x - this.w/2 + j, this.y - this.h/2 + j, this.w, this.h);
+                ctx.strokeStyle = this.isBoss ? varColor('--gold') : varColor('--danger');
+                ctx.lineWidth = 1;
+                ctx.strokeRect(this.x - this.w/2 + j, this.y - this.h/2 + j, this.w, this.h);
+                ctx.fillStyle = this.isBoss ? varColor('--gold') : varColor('--danger');
+                ctx.fillRect(this.x - this.w/2 + j, this.y - this.h/2 - 10 + j, this.w, 10);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 8px monospace';
+                ctx.textAlign = 'center';
+                const displayText = this.label.substring(0, 18) + (this.label.length > 18 ? '...' : '');
+                ctx.fillText(displayText, this.x + j, this.y + 5 + j);
+                ctx.fillText(this.isBoss ? "CRITICAL_ERROR" : "BAD_CODE", this.x + j, this.y - this.h/2 - 2 + j);
+            }
+        }
+
+        function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.v = { x: (Math.random()-0.5)*12, y: (Math.random()-0.5)*12 };
+                this.alpha = 1;
+                const lang = state.userLangs[Math.floor(Math.random() * state.userLangs.length)] || 'JavaScript';
+                const snippets = CODE_SNIPPETS[lang] || ['git', '01'];
+                this.text = snippets[Math.floor(Math.random() * snippets.length)];
+            }
+            update() { this.x += this.v.x; this.y += this.v.y; this.alpha -= 0.025; }
+            draw() {
+                ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color;
+                ctx.font = '10px monospace'; ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        const UPGRADES = [
+            { id: 'fireRate', title: 'TURBO_COMPILER', desc: 'Increase Fire Rate by 25%', effect: () => state.fireRate *= 0.75 },
+            { id: 'multiShot', title: 'MULTI_THREADING', desc: 'Add +1 Projectile Stream', effect: () => state.multiShot++ },
+            { id: 'shield', title: 'BUFFER_ENCRYPTION', desc: 'Add Armor Layer (Reduces Dmg)', effect: () => state.shield += 5 },
+            { id: 'damage', title: 'CLEAN_ARCHITECTURE', desc: 'Destroy multiple code blocks at once', effect: () => state.damage++ }
+        ];
+
+        function showUpgradeMenu() {
+            state.gameActive = false;
+            upgradeMenu.classList.remove('hidden');
+            const list = document.getElementById('upgrade-list');
+            list.innerHTML = '';
+            const options = [...UPGRADES].sort(() => 0.5 - Math.random()).slice(0, 3);
+            options.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = 'upgrade-card';
+                div.innerHTML = `<h3>${opt.title}</h3><p>${opt.desc}</p>`;
+                div.onclick = () => {
+                    opt.effect();
+                    upgradeMenu.classList.add('hidden');
+                    state.gameActive = true;
+                    AudioEngine.play(880, 'sine', 0.2);
+                    gameLoop();
+                };
+                list.appendChild(div);
+            });
+        }
+
+        function togglePause() {
+            if (!state.gameActive && !state.isPaused) return;
+            state.isPaused = !state.isPaused;
+            if (state.isPaused) {
+                pauseMenu.classList.remove('hidden');
+                cancelAnimationFrame(state.animationId);
+            } else {
+                pauseMenu.classList.add('hidden');
+                settingsMenu.classList.add('hidden');
+                gameLoop();
+            }
+        }
+
+        function gameLoop() {
+            if (!state.gameActive || state.isPaused) return;
+            state.animationId = requestAnimationFrame(gameLoop);
+            let sx = 0, sy = 0;
+            if(state.shake > 0) { sx = (Math.random()-0.5)*state.shake; sy = (Math.random()-0.5)*state.shake; state.shake *= 0.85; }
+            ctx.fillStyle = '#010409'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Background Animation
+            state.backgroundCode.forEach(r => { r.update(); r.draw(); });
+            
+            ctx.save(); ctx.translate(sx, sy);
+
+            // Player Avatar
+            ctx.save(); ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.clip();
+            if(player.img.complete) ctx.drawImage(player.img, player.x-player.r, player.y-player.r, player.r*2, player.r*2);
+            else { ctx.fillStyle = '#238636'; ctx.fill(); }
+            ctx.restore();
+            ctx.strokeStyle = state.health < 30 ? '#da3633' : '#238636'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(player.x, player.y, player.r + 5, 0, Math.PI*2); ctx.stroke();
+
+            // Spawn Cycle
+            const now = Date.now();
+            if(now - state.lastSpawn > state.spawnRate) {
+                state.enemies.push(new Enemy(Math.random() > 0.85));
+                state.lastSpawn = now;
+                state.spawnRate = Math.max(700, state.spawnRate * 0.985);
+            }
+
+            // Projectiles
+            state.projectiles.forEach((p, i) => {
+                p.update(); p.draw();
+                if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) state.projectiles.splice(i, 1);
+            });
+
+            // Particles
+            state.particles.forEach((p, i) => {
+                p.update(); p.draw();
+                if(p.alpha <= 0) state.particles.splice(i, 1);
+            });
+
+            // Combat Logic
+            for (let i = state.enemies.length - 1; i >= 0; i--) {
+                const e = state.enemies[i]; e.update(); e.draw();
+                if(Math.hypot(player.x - e.x, player.y - e.y) < player.r + 30) {
+                    state.health -= Math.max(5, 15 - state.shield); state.shake = 20;
+                    AudioEngine.play(80, 'sawtooth', 0.4); state.enemies.splice(i, 1);
+                    if(state.health <= 0) { state.health = 0; gameOver(); }
+                    updateUI(); continue;
+                }
+                for (let pi = state.projectiles.length - 1; pi >= 0; pi--) {
+                    const p = state.projectiles[pi];
+                    if(Math.hypot(p.x - e.x, p.y - e.y) < 45) {
+                        e.hp--; state.projectiles.splice(pi, 1);
+                        if(e.hp <= 0) {
+                            for(let k=0; k<12; k++) state.particles.push(new Particle(e.x, e.y, e.isBoss ? '#f1e05a' : '#da3633'));
+                            state.score += e.isBoss ? 100 : 10; state.xp += e.isBoss ? 65 : 25;
+                            AudioEngine.play(e.isBoss ? 120 : 300, 'square', 0.1);
+                            state.enemies.splice(i, 1); checkLevel(); break;
+                        }
+                    }
+                }
+            }
+            ctx.restore();
+        }
+
+        function checkLevel() {
+            if(state.xp >= 100) { state.level++; state.xp = 0; AudioEngine.play(600, 'triangle', 0.6); showUpgradeMenu(); }
+            updateUI();
+        }
+
+        function updateUI() {
+            scoreEl.textContent = state.score; healthEl.textContent = Math.floor(state.health) + '%';
+            healthFill.style.width = state.health + '%'; levelEl.textContent = state.level.toFixed(1);
+            xpBar.value = state.xp;
+        }
+
+        canvas.onmousedown = (e) => {
+            if(!state.gameActive || state.isPaused) return;
+            const now = Date.now(); if(now - state.lastFire < state.fireRate) return;
+            const rect = canvas.getBoundingClientRect();
+            const tx = e.clientX - rect.left; const ty = e.clientY - rect.top;
+            AudioEngine.play(1000, 'sine', 0.05);
+            for(let i=0; i<state.multiShot; i++) {
+                const offset = (i - (state.multiShot-1)/2) * 0.2;
+                state.projectiles.push(new Projectile(tx, ty, player.x, player.y, offset));
+            }
+            state.lastFire = now;
+        };
+
+        // Window Dots Control
+        document.getElementById('pause-dot').onclick = togglePause;
+        document.getElementById('settings-dot').onclick = () => {
+            if (!state.gameActive) {
+                overlay.classList.add('hidden');
+                settingsMenu.classList.remove('hidden');
+            } else if (!state.isPaused) {
+                togglePause();
+                settingsMenu.classList.remove('hidden');
+            } else {
+                settingsMenu.classList.toggle('hidden');
+            }
+        };
+        document.getElementById('quit-dot').onclick = () => location.reload();
+
+        // UI Handlers
+        document.getElementById('resume-btn').onclick = togglePause;
+        document.getElementById('open-settings-btn').onclick = () => settingsMenu.classList.remove('hidden');
+        document.getElementById('close-settings-btn').onclick = () => {
+            settingsMenu.classList.add('hidden');
+            if (!state.gameActive) overlay.classList.remove('hidden');
+        };
+
+        document.getElementById('sfx-toggle').onclick = function() {
+            this.classList.toggle('on');
+            AudioEngine.muted = !this.classList.contains('on');
+            document.getElementById('mute-toggle').textContent = AudioEngine.muted ? '🔇' : '🔊';
+        };
+
+        document.getElementById('quit-btn').onclick = () => location.reload();
+
+        window.onkeydown = (e) => {
+            if (!e || !e.key) return;
+            const key = e.key.toLowerCase();
+            if (key === 'escape' || key === 'p') togglePause();
+        };
+
+        startBtn.onclick = () => {
+            AudioEngine.init(); state.gameActive = true;
+            overlay.classList.add('hidden'); document.getElementById('ui').classList.remove('hidden');
+            state.score = 0; state.health = 100; state.level = 1; state.xp = 0;
+            state.enemies = []; state.projectiles = []; state.particles = [];
+            state.fireRate = 400; state.multiShot = 1; state.shield = 0;
+            state.lastSpawn = Date.now(); state.spawnRate = 2000;
+            updateUI(); gameLoop();
+        };
+
+        function gameOver() {
+            state.gameActive = false; cancelAnimationFrame(state.animationId);
+            overlay.classList.remove('hidden');
+            document.querySelector('.glitch-text').textContent = "CORE_DUMPED";
+            document.querySelector('.glitch-text').style.color = "var(--danger)";
+            startBtn.textContent = "REBOOT.SH";
+        }
+    </script>
+</body>
+</html>

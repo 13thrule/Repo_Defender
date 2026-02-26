@@ -2,9 +2,33 @@
 
 Repo Defender is an interactive arcade shooter that turns your GitHub profile into a battlefield! Defend your source code from real-world bugs, legacy projects, and technical debt.
 
-🕹️ Play Now
+🕹️ System Terminal
 
-https://13thrule.github.io/Repo_Defender/
+$$\!$$
+
+ SECURE CONNECTION ESTABLISHED > 
+
+$$\!$$
+
+ TARGET: 13thrule
+
+$$\!$$
+
+ STATUS: DEFENSES_OFFLINE
+
+ ▶️ CLICK HERE TO BOOT GAME AND PLAY NOW 
+
+📸 System Preview
+
+Click on an image below to enter the terminal
+
+START MENU
+
+GAMEPLAY
+
+
+
+
 
 ✨ Unique Features
 
@@ -18,17 +42,17 @@ Language Integration: Background animations and weapon effects use syntax from y
 
 GIT_CONFIG Upgrades: Level up to unlock system optimizations like Turbo Compiling, Multi-threading, and Buffer Encryption.
 
-🚀 Deployment Instructions
+🚀 How to Play
 
-This game is a single-file web application, making it perfect for free hosting on GitHub Pages.
+Visit the Live Game Page.
 
-Save the index.html file to the root of your repository.
+Enter your GitHub handle in the terminal.
 
-Go to Settings > Pages.
+Click FETCH to pull your real repository data.
 
-Set the Branch to main and Folder to / (root).
+Click BOOT_SYSTEM to begin the defense.
 
-Click Save.
+Click/Tap to fire "Clean Code" projectiles. Use ESC or P to pause.
 
 💻 Technical Stack
 

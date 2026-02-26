@@ -4,15 +4,19 @@ Repo Defender is an interactive arcade shooter that turns your GitHub profile in
 
 🕹️ System Terminal
 
-$$\!$$
+
 
  SECURE CONNECTION ESTABLISHED > 
 
-$$\!$$
+![Start Menu Example](./startmenuexample.png)
+
 
  TARGET: 13thrule
 
-$$\!$$
+<p align="center">
+  <img src="./gameplayexample.png" width="600">
+</p>
+
 
  STATUS: DEFENSES_OFFLINE
 
